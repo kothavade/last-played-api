@@ -1,6 +1,6 @@
 # last played api
 
-simple api for getting the last played song from youtube music, built for [kothavade.com](https://kothavade.com).
+simple [flask](https://flask.palletsprojects.com/) api for getting the last played song from youtube music, built for [kothavade.com](https://kothavade.com).
 
 ## tech
 - heavy lifting done by [ytmusicapi](https://github.com/sigma67/ytmusicapi)
