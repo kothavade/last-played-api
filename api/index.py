@@ -62,7 +62,7 @@ def api():
         else:
             print("Fetching last played from YTMusic")
         last_played = get_ytmusic_last_played()
-        redis.set(LAST_PLAYED_KEY, last_played, ex=30)
+        redis.set(LAST_PLAYED_KEY, last_played, ex=120)
         return last_played
     print("Using cached last played")
     return cached
