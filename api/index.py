@@ -42,8 +42,10 @@ def get_ytmusic_last_played():
     )
     history = ytmusic.get_history()
     last_played = history[0]
+    print(last_played)
     return json.dumps(
         {
+            "videoId": last_played["videoId"],
             "title": last_played["title"],
             "artist": ", ".join([artist["name"] for artist in last_played["artists"]]),
             "album": last_played["album"]["name"],
