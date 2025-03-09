@@ -28,7 +28,12 @@ redis = Redis(
     token=env["REDIS_TOKEN"],
 )
 app = Flask(__name__)
-CORS(app, origins=["https://kothavade.com", "http://localhost:5000"])
+CORS(
+    app,
+    resources={
+        r"/*": {"origins": ["https://www.kothavade.com", "http://localhost:5000"]}
+    },
+)
 
 
 def get_ytmusic_last_played():
