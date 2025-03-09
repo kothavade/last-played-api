@@ -42,7 +42,6 @@ def get_ytmusic_last_played():
     )
     history = ytmusic.get_history()
     last_played = history[0]
-    print(last_played)
     return json.dumps(
         {
             "videoId": last_played["videoId"],
