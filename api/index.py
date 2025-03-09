@@ -1,8 +1,9 @@
+import json
+import os
+
 from flask import Flask, request
 from flask_cors import CORS
 from upstash_redis import Redis
-import json
-import os
 
 vercel = "VERCEL" in os.environ
 if not vercel:
@@ -15,8 +16,8 @@ env = os.environ
 OAUTH_JSON = f"""{{
 "scope": "https://www.googleapis.com/auth/youtube",
 "token_type": "Bearer",
-"access_token": "{env['OAUTH_ACCESS_TOKEN']}",
-"refresh_token": "{env['OAUTH_REFRESH_TOKEN']}",
+"access_token": "{env["OAUTH_ACCESS_TOKEN"]}",
+"refresh_token": "{env["OAUTH_REFRESH_TOKEN"]}",
 "expires_at": 1741474523,
 "expires_in": 3599
 }}"""
@@ -31,7 +32,7 @@ CORS(app)
 
 
 def get_ytmusic_last_played():
-    from ytmusicapi import YTMusic, OAuthCredentials
+    from ytmusicapi import OAuthCredentials, YTMusic
 
     ytmusic = YTMusic(
         OAUTH_JSON,
