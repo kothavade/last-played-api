@@ -1,6 +1,8 @@
-# last played api
+# website api
 
-simple [flask](https://flask.palletsprojects.com/) api for getting the last played song from youtube music, built for [kothavade.com](https://kothavade.com).
+simple [flask](https://flask.palletsprojects.com/) api for [kothavade.com](https://kothavade.com):
+- gets the last played song from youtube music
+- generates discord friend invite links
 
 ## tech
 - heavy lifting done by [ytmusicapi](https://github.com/sigma67/ytmusicapi)

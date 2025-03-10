@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Flask, request
+from flask import Flask, redirect, request
 from flask_cors import CORS
 from upstash_redis import Redis
 
@@ -22,6 +22,7 @@ OAUTH_JSON = f"""{{
 "expires_in": 3599
 }}"""
 LAST_PLAYED_KEY = "last_played"
+DISCORD_INVITE_KEY = "discord_invite"
 
 redis = Redis(
     url=env["REDIS_URL"],
@@ -60,7 +61,7 @@ def get_ytmusic_last_played():
     )
 
 
-@app.route("/")
+@app.route("/last-played")
 def api():
     force_check = request.args.get("force", "false").lower() == "true"
     cached = redis.get(LAST_PLAYED_KEY)
@@ -74,6 +75,55 @@ def api():
         return last_played
     print("Using cached last played")
     return cached
+
+
+@app.route("/discord")
+def discord():
+    from datetime import datetime, timedelta
+
+    import httpx
+    import pytz
+
+    data = {
+        "code": "",
+        "expires": (
+            datetime.now(pytz.timezone("UTC")) + timedelta(seconds=10)
+        ).isoformat(),
+        "max_uses": 0,
+        "logged_uses": 0,
+    }
+
+    cached = redis.get(DISCORD_INVITE_KEY)
+    if cached is not None:
+        data = json.loads(cached)
+
+    if (
+        datetime.fromisoformat(data["expires"]) <= datetime.now(pytz.timezone("UTC"))
+        or data["logged_uses"] + 1 > data["max_uses"]
+    ):
+        print("generating new invite")
+        with httpx.Client() as client:
+            resp = client.post(
+                "https://discord.com/api/v9/users/@me/invites",
+                data="{}",
+                headers={
+                    "authorization": env["DISCORD_TOKEN"],
+                    "content-type": "application/json",
+                },
+            )
+            if resp.status_code != 200:
+                raise Exception(resp.json())
+
+            response_data = resp.json()
+            data["code"] = response_data["code"]
+            data["expires"] = response_data["expires_at"]
+            data["max_uses"] = response_data["max_uses"]
+            data["logged_uses"] = 1
+    else:
+        data["logged_uses"] += 1
+
+    redis.set(DISCORD_INVITE_KEY, json.dumps(data))
+    return redirect(f"https://discord.com/invite/{data['code']}")
 
 
 if not vercel:
