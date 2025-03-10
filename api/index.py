@@ -65,6 +65,11 @@ def get_ytmusic_last_played():
     )
 
 
+@app.route("/")
+def index():
+    return redirect("https://www.kothavade.com", code=301)
+
+
 @app.route("/last-played")
 def api():
     force_check = request.args.get("force", "false").lower() == "true"
