@@ -21,8 +21,6 @@ OAUTH_JSON = f"""{{
 "expires_at": 1741474523,
 "expires_in": 3599
 }}"""
-LAST_PLAYED_KEY = "last_played"
-DISCORD_INVITE_KEY = "discord_invite"
 
 redis = Redis(
     url=env["REDIS_URL"],
@@ -64,14 +62,11 @@ def get_ytmusic_last_played():
 @app.route("/last-played")
 def api():
     force_check = request.args.get("force", "false").lower() == "true"
-    cached = redis.get(LAST_PLAYED_KEY)
+    cached = redis.get("last_played")
     if cached is None or force_check:
-        if force_check:
-            print("Force fetching last played from YTMusic")
-        else:
-            print("Fetching last played from YTMusic")
+        print("Fetching last played from YTMusic")
         last_played = get_ytmusic_last_played()
-        redis.set(LAST_PLAYED_KEY, last_played, ex=120)
+        redis.set("last_played", last_played, ex=120)
         return last_played
     print("Using cached last played")
     return cached
@@ -79,29 +74,23 @@ def api():
 
 @app.route("/discord")
 def discord():
-    from datetime import datetime, timedelta
+    pipe = redis.pipeline()
+    pipe.get("discord:code")
+    pipe.get("discord:uses")
+    pipe.get("discord:max_uses")
+    invite_code, uses, max_uses = pipe.exec()
 
-    import httpx
-    import pytz
+    uses = int(uses) if uses else 0
+    max_uses = int(max_uses) if max_uses else 0
 
-    data = {
-        "code": "",
-        "expires": (
-            datetime.now(pytz.timezone("UTC")) + timedelta(seconds=10)
-        ).isoformat(),
-        "max_uses": 0,
-        "logged_uses": 0,
-    }
+    if invite_code is None or uses >= max_uses:
+        from datetime import datetime
 
-    cached = redis.get(DISCORD_INVITE_KEY)
-    if cached is not None:
-        data = json.loads(cached)
+        import httpx
+        import pytz
 
-    if (
-        datetime.fromisoformat(data["expires"]) <= datetime.now(pytz.timezone("UTC"))
-        or data["logged_uses"] + 1 > data["max_uses"]
-    ):
-        print("generating new invite")
+        print("Generating new invite")
+
         with httpx.Client() as client:
             resp = client.post(
                 "https://discord.com/api/v9/users/@me/invites",
@@ -115,15 +104,30 @@ def discord():
                 raise Exception(resp.json())
 
             response_data = resp.json()
-            data["code"] = response_data["code"]
-            data["expires"] = response_data["expires_at"]
-            data["max_uses"] = response_data["max_uses"]
-            data["logged_uses"] = 1
-    else:
-        data["logged_uses"] += 1
+            invite_code = response_data["code"]
+            max_uses = response_data["max_uses"]
 
-    redis.set(DISCORD_INVITE_KEY, json.dumps(data))
-    return redirect(f"https://discord.com/invite/{data['code']}")
+            expires = response_data["expires_at"]
+            expires_dt = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+            current_dt = datetime.now(pytz.timezone("UTC"))
+            ttl = int((expires_dt - current_dt).total_seconds())
+
+            pipe = redis.pipeline()
+            pipe.set("discord:code", invite_code, ex=ttl)
+            pipe.set("discord:max_uses", str(max_uses), ex=ttl)
+            pipe.set("discord:uses", "1", ex=ttl)
+            pipe.exec()
+    else:
+        print("Using existing invite")
+        redis.incr("discord:uses")
+
+    if isinstance(invite_code, bytes):
+        invite_code = invite_code.decode("utf-8")
+
+    return redirect(
+        f"https://discord.com/invite/{invite_code}",
+        code=302,
+    )
 
 
 if not vercel:
