@@ -30,7 +30,13 @@ app = Flask(__name__)
 CORS(
     app,
     resources={
-        r"/*": {"origins": ["https://www.kothavade.com", "http://localhost:5000"]}
+        r"/*": {
+            "origins": [
+                "https://www.kothavade.com",
+                "http://localhost:5000",
+                "http://localhost:3001",
+            ]
+        }
     },
 )
 
