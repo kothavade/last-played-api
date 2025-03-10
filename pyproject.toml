@@ -4,4 +4,5 @@ reportUnusedCallResult = false
 reportUnknownMemberType = false
 reportUnknownVariableType = false
 reportUnknownArgumentType = false
+reportAny = false
 pythonVersion = "3.12"
